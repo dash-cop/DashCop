@@ -1,0 +1,13 @@
+rider_motion_weight : 0
+rider_appearance_weight : 1
+motor_motion_weight : 1
+motor_appearance_weight: 0
+rider_motion_gating_threshold : 200
+motor_motion_gating_threshold : 100
+rider_obj_weight : 1
+motor_obj_weight : 0.1
+assoc_weight : 1
+assoc_thresh : 0.5
+max_miss_count : 40
+max_tree_depth : 45
+last_n_frames : 1
