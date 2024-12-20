@@ -70,9 +70,3 @@ The `pipeline.py` script uses flags for configuration. Below are the available f
    ```
 
 4. **Customize Flags**: Adjust the flags as needed to suit your use case.
-
-### Refinements
-- **Improved Flag Interface**: Convert the current flags to a user-friendly configuration system, such as using a YAML/JSON config file or a CLI parser like `argparse` for better readability and maintainability.
-- **README Updates**: Ensure all dependencies, links to pretrained weights, and sample commands are included in the README file.
-
-For further details, refer to the comments in `pipeline.py` or contact the maintainers.
