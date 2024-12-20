@@ -9,6 +9,10 @@ This directory contains the code for inference and running the traffic violation
 - **`ultralytics/`**: Contains the code for CAS and other detection models derived from YOLOv8.
 - **`pipeline.py`**: Main Python file that orchestrates the pipeline. It includes various flags to customize the pipeline execution.
 
+## Download Pretrained Weights
+You can download the pretrained weights for CAS, HHN, and the TR-Classifier here
+https://drive.google.com/drive/folders/1NWt42_Sr7jxuAVZq2nQOm0LiZmE_3nYz?usp=drive_link
+
 ## Running the Pipeline
 
 ### Flags
@@ -70,3 +74,4 @@ The `pipeline.py` script uses flags for configuration. Below are the available f
    ```
 
 4. **Customize Flags**: Adjust the flags as needed to suit your use case.
+
