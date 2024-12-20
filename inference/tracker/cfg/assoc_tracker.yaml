@@ -1,0 +1,25 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+# Default YOLO tracker settings for BoT-SORT tracker https://github.com/NirAharon/BoT-SORT
+
+tracker_type: botsort  # tracker type, ['botsort', 'bytetrack']
+track_high_thresh: 0.4  # threshold for the first association
+track_low_thresh: 0.1  # threshold for the second association
+new_track_thresh: 0.3  # threshold for init new track if the detection does not match any tracks
+track_buffer: 60  # buffer to calculate the time when to remove tracks
+match_thresh: 0.8  # threshold for matching tracks
+# min_box_area: 10  # threshold for min box areas(for tracker evaluation, not used for now)
+# mot20: False  # for tracker evaluation(not used for now)
+
+# BoT-SORT settings
+cmc_method: sparseOptFlow  # method of global motion compensation
+# ReID model related thresh
+proximity_thresh: 0.9
+appearance_thresh: 0.035
+rider_obj_weight : 1
+motor_obj_weight : 1
+assoc_weight : 1
+with_reid: True
+
+fast_reid_config: /home2/keshav06/TrafficViolations/tracker_reid/fast_reid/configs/Market1501/sbs_R101-ibn.yml
+fast_reid_weights: /home2/keshav06/TrafficViolations/weights/market_sbs_R101-ibn.pth
+device: cuda
