@@ -30,4 +30,3 @@ Pretrained weights for the model can be downloaded from the following link:
 2. Preprocess the dataset using `extract_hnh_annots_frame.py`.
 3. Train the detection model using YOLOv8 with the preprocessed dataset.
 4. Use the pretrained weights provided in the Google Drive link for inference or further fine-tuning.
-
