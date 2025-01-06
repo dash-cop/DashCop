@@ -11,5 +11,7 @@
     "assoc_thresh" : 0.5,
     "max_miss_count" : 40,
     "max_tree_depth" : 45,
-    "last_n_frames" : 1
+    "last_n_frames" : 1,
+    "REID_CONFIG" : "/home2/keshav06/TrafficViolations/tracker_reid/fast_reid/configs/Market1501/sbs_R101-ibn.yml",
+    "REID_WEIGHTS": "/home2/keshav06/TrafficViolations/weights/market_sbs_R101-ibn.pth"
 }

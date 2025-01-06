@@ -7,7 +7,7 @@ import gurobipy as gp
 from scipy.interpolate import interp1d
 from pulp import *
 import time
-from tracker_reid.offline_tracker.tracker_dists import TrackerDists
+from tracker.assoc_tracker.tracker_dists import TrackerDists
 from .node import Node
 from .detection import Detection
 import json
@@ -15,11 +15,7 @@ import yaml
 from .tracker import Tracker
 
 
-# REID_CONFIG = '/Users/keshavgupta/desktop/CVIT/TrafficViolations/tracker_reid/fast_reid/configs/Market1501/sbs_R101-ibn.yml'
-REID_CONFIG = '/home2/keshav06/TrafficViolations/tracker_reid/fast_reid/configs/Market1501/sbs_R101-ibn.yml'
-# REID_WEIGHTS = '/Users/keshavgupta/desktop/CVIT/TrafficViolations/weights/market_sbs_R101-ibn.pth'
-REID_WEIGHTS = '/home2/keshav06/TrafficViolations/weights/market_sbs_R101-ibn.pth'
-REID_MAPPING_FILE = "/Users/keshavgupta/desktop/CVIT/TrafficViolations/simil_off_diag.npy"
+# REID_MAPPING_FILE = "/Users/keshavgupta/desktop/CVIT/TrafficViolations/simil_off_diag.npy"
 
 # TODO
 # Not penalizing -1
@@ -52,7 +48,7 @@ class AssocTracker():
         print("TrHERE")
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         if(reid_model is None):
-            self.reid_encoder = FastReIDInterface(config_file=REID_CONFIG, weights_path=REID_WEIGHTS, device=self.device)
+            self.reid_encoder = FastReIDInterface(config_file=self.cfg.get("REID_CONFIG"), weights_path=self.cfg.get("REID_WEIGHTS"), device=self.device)
         else:
             self.reid_encoder = reid_model
         print("REID LOADED")

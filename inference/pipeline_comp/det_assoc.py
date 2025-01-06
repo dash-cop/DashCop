@@ -10,7 +10,7 @@ import torch
 import matplotlib.pyplot as plt
 # from instance_funcs import *
 from ultralytics import YOLO
-from core.association import *
+# from core.association import *
 import matplotlib.pyplot as plt
 
 class DetAssoc():

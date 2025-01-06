@@ -11,7 +11,7 @@ import torch
 import matplotlib.pyplot as plt
 # from instance_funcs import *
 from ultralytics import YOLO
-from core.association import *
+# from core.association import *
 from transformers import ViTImageProcessor, ViTModel
 import matplotlib.pyplot as plt
 import joblib
@@ -20,11 +20,11 @@ from pipeline_comp.models.load import *
 from pipeline_comp.models.lit_model import Model
 
 class YOLOClf():
-    def __init__(self, weights_path, num_classes=4):
+    def __init__(self, weights_path, rm_assoc_path, num_classes=4):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.transform = self.transforms()
 
-        model = give_yolo_model(num_classes=4)
+        model = give_yolo_model(weights=rm_assoc_path, num_classes=4)
         model = Model(model, None, 4)
         model_to_load = torch.load(weights_path)
         model.load_state_dict(model_to_load['state_dict'])

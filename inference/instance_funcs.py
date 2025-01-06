@@ -1,4 +1,4 @@
-from core.association import *
+# from core.association import *
 import pandas as pd
 import numpy as np
 import cv2

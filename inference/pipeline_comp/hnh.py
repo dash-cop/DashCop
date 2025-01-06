@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 from ultralytics import YOLO
-from core.association import *
+# from core.association import *
 import matplotlib.pyplot as plt
 
 class HNHModel():

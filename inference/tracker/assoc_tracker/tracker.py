@@ -8,7 +8,7 @@ from gurobipy import GRB
 from scipy.interpolate import interp1d
 from pulp import *
 import time
-from tracker_reid.offline_tracker.tracker_dists import TrackerDists
+from tracker.assoc_tracker.tracker_dists import TrackerDists
 from .node import Node
 from .detection import Detection
 import lap # lapx>=0.5.2

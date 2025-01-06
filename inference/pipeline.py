@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from instance_funcs import *
 
 from ultralytics import YOLO
-from core.association import *
+# from core.association import *
 import matplotlib.pyplot as plt
 
 from transformers import VisionEncoderDecoderModel, TrOCRForCausalLM
@@ -36,19 +36,19 @@ sys.path.append('tracker/fast_reid/fastreid')
 sys.path.append('tracker/fast_reid/fastreid/data')
 from tracker.assoc_tracker.assoc_tracker import *
 
-flags.DEFINE_string('video', '/ssd_scratch//cvit/keshav/videoset1/original_videos/20211109152409_0060.mp4', 'path to input video or set to 0 for webcam')
-flags.DEFINE_string('output', './outputs/trip_offline_assoc_.mp4', 'path to raw output video')
+flags.DEFINE_string('video', '/ssd_scratch//cvit/keshav/dashcop/Video_set_1/videos/20211109152409_0060.mp4', 'path to input video or set to 0 for webcam')
+flags.DEFINE_string('output', '/ssd_scratch/cvit/keshav/outputs/20211109152409_0060_inferred.mp4', 'path to raw output video')
 flags.DEFINE_integer('frame_start', 0, 'frame start')
-flags.DEFINE_integer('frame_max', -1, 'frame max')
+flags.DEFINE_integer('frame_max', 100, 'frame max')
 flags.DEFINE_boolean('infer_lp', False, 'infer license plates or not')
 flags.DEFINE_boolean('infer_hnh', True, 'infer helmet/no-helmet or not')
 flags.DEFINE_boolean('clf', True, 'use clf or not')
-flags.DEFINE_string('tracker_config', './tracker_reid/offline_tracker/base_cfg.yaml', 'path to assoc tracker config')
-flags.DEFINE_string('rm_weights', '/ssd_scratch/cvit/keshav/model_ft.pt', 'path to rider motorcyle assoc weights')
-flags.DEFINE_string('hnh_weights', '/ssd_scratch/cvit/keshav/weights/best.pt', 'path to helmet/no-helmet weights')
-flags.DEFINE_string('clf_weights', '/ssd_scratch/cvit/keshav/tr_clf.ckpt', 'path to helmet/no-helmet weights')
-flags.DEFINE_string('lp_det_weights', '/ssd_scratch/cvit/keshav/lisence_plate_v8.pt', 'path to lp det weights')
-flags.DEFINE_string('lp_rec_weights', '/ssd_scratch/cvit/keshav/lp_ckpt', 'path to lp-rec model -> trocr weights')
+flags.DEFINE_string('tracker_config', './tracker/assoc_tracker/base_cfg.yaml', 'path to assoc tracker config')
+flags.DEFINE_string('rm_weights', '/ssd_scratch/cvit/keshav/weights/model_ft.pt', 'path to rider motorcyle assoc weights')
+flags.DEFINE_string('hnh_weights', '/ssd_scratch/cvit/keshav/weights/hnh_frame.pt', 'path to helmet/no-helmet weights')
+flags.DEFINE_string('clf_weights', '/ssd_scratch/cvit/keshav/weights/tr_clf.ckpt', 'path to helmet/no-helmet weights')
+flags.DEFINE_string('lp_det_weights', '/ssd_scratch/cvit/keshav/weights/lp_det.pt', 'path to lp det weights')
+flags.DEFINE_string('lp_rec_weights', '/ssd_scratch/cvit/keshav/weights/lp_rec', 'path to lp-rec model -> dtrb weights')
 flags.DEFINE_boolean('dont_show', True, 'dont show video output')
 
 def main(_argv):
@@ -65,7 +65,7 @@ def main(_argv):
         FLAGS.output = save_root + FLAGS.video.split("/")[-1][:-4] + "_det.mp4"
     else:
         FLAGS.output = save_root + FLAGS.video.split("/")[-1][:-4] + ".mp4"
-        dt_classifier = YOLOClf(weights_path=FLAGS.clf_weights)
+        dt_classifier = YOLOClf(weights_path=FLAGS.clf_weights, rm_assoc_path=FLAGS.rm_weights)
 
     if(FLAGS.infer_lp):
         lp_model = LicensePlateModel(det_weights=FLAGS.lp_det_weights, rec_weights=FLAGS.lp_rec_weights)
