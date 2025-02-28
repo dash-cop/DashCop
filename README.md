@@ -8,7 +8,7 @@ As shown in the figure below, our methodology consists of four major components:
 
 To run inference on your videos, navigate to the `inference` directory. To understand the training procedure for each of these four modules, navigate to the `training` directory.
 
-![alt text](./image/method.png "Method")
+![alt text](../training/image/method.png "Method")
 
 For queries regarding weight files and the dataset, contact:
 `deepti.rawat@research.iiit.ac.in`
