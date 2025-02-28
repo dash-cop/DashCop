@@ -1,12 +1,12 @@
-# RideSafe-500
+# RideSafe-400
 
 ## Dataset Description
 
 ### Dataset Summary
-RideSafe-500 is a dataset of annotated dashcam videos designed specifically for detecting traffic violations involving motorized two-wheelers, such as helmet non-compliance and triple riding. The dataset was created to address the lack of publicly available resources tailored to these safety violations. It supports tasks like violation detection, traffic safety analysis, and automated E-ticket generation.
+RideSafe-400 is a dataset of annotated dashcam videos designed specifically for detecting traffic violations involving motorized two-wheelers, such as helmet non-compliance and triple riding. The dataset was created to address the lack of publicly available resources tailored to these safety violations. It supports tasks like violation detection, traffic safety analysis, and automated E-ticket generation.
 
 ### Supported Tasks and Leaderboards
-RideSafe-500 is designed to support:
+RideSafe-400 is designed to support:
 - Helmet compliance detection
 - Passenger count classification (single, double, triple riding)
 - Two-wheeler localization in dashcam videos
@@ -19,31 +19,42 @@ The dataset primarily features data from regions where signage and other visible
 ## Dataset Structure
 
 ### Data Instances
-Each data instance consists of a video clip (average length: 20 seconds) accompanied by annotations in JSON format. Example:
+Each data instance consists of a video clip accompanied by annotations in XML format (CVAT for Video 1.1). Example:
 ```
-{
-  "video_id": "rs500_001",
-  "annotations": [
-    {
-      "frame": 15,
-      "bounding_box": [120, 85, 300, 250],
-      "helmet_compliance": "No",
-      "passenger_count": 3
-    }
-  ]
-}
+<annotations>
+  <track id="0" label="rider">
+    <box frame="275" xtl="1793.60" ytl="215.50" xbr="1881.30" ybr="298.10">
+      <attribute name="association_id">196</attribute>
+    <\box>
+    <polyline frame="275" points="1098.00,224.00;1097.00,225.00;1096.00,225.00;1092.00...">
+      <attribute name="association_id">196</attribute>
+    <\box>
+    ...
+  <\track>
+  <track id="1" label="motorcycle">
+    <box frame="275" xtl="1046.10" ytl="226.10" xbr="1075.90" ybr="268.10">
+      <attribute name="motor_track_id">196</attribute>
+    <\box>
+    <polyline frame="275" points="1069.00,225.00;1068.00,226.00;1066.00,226.00;1065.00...">
+      <attribute name="motor_track_id">196</attribute>
+    <\box>
+    ...
+  <\track>
+  ...
+<\annotations>
 ```
 
 ### Data Fields
-- **video_id**: Unique identifier for each video (string)
+- **label**: The annotation class (rider, motorcycle, helmet, no-helmet, license plate)
 - **frame**: Frame number for the annotation (integer)
-- **bounding_box**: Coordinates of the two-wheeler in the frame (list of integers)
-- **helmet_compliance**: Compliance status (Yes or No)
-- **passenger_count**: Number of passengers (integer)
+- **xtl**, **ytl**, **xbr**, **ybr**: Coordinates of the rider and motorcycle
+- **association_id** is an attribute of the `rider` bbox
+- **motor_track_id** is an attribute of the `motorcycle` bbox
+- If **association_id** is equal to **motor_track_id**, it means that rider belongs to the corresponding motorcycle
 
 ### Data Splits
-- **Training set**: 350 videos (70%)
-- **Validation set**: 100 videos (20%)
+- **Training set**: 300 videos (70%)
+- **Validation set**: 50 videos (20%)
 - **Test set**: 50 videos (10%)
 
 The dataset maintains a balanced distribution of helmet compliance and triple riding scenarios across the splits.
@@ -51,16 +62,13 @@ The dataset maintains a balanced distribution of helmet compliance and triple ri
 ## Dataset Creation
 
 ### Curation Rationale
-RideSafe-500 was created to fill the gap in datasets tailored for two-wheeler traffic violations. Existing datasets lack specific annotations for helmet use and passenger count, making it difficult to train models for these applications.
+RideSafe-400 was created to fill the gap in datasets tailored for two-wheeler traffic violations. Existing datasets lack specific annotations for helmet use and passenger count, making it difficult to train models for these applications.
 
 ### Source Data
 The videos were collected from real-world dashcams in urban, suburban, and highway environments. Data was sourced from publicly shared dashcam footage (with permissions) and custom recordings.
 
 ### Annotations
 Annotations were generated using a combination of manual labeling and semi-automated tools. The annotation process involved three annotators per video for consistency, followed by a quality-check stage.
-
-### Personal and Sensitive Information
-The dataset does not include personally identifiable information (PII) or sensitive data. Vehicle license plates and faces of riders were blurred during preprocessing to maintain privacy.
 
 ## Considerations for Using the Data
 
@@ -70,30 +78,13 @@ The dataset aims to enhance road safety by enabling technologies that detect and
 ### Discussion of Biases
 The dataset may exhibit regional biases, as the videos primarily feature traffic scenarios from Asia-Pacific regions. Helmet designs, road conditions, and vehicle types in other regions may differ, which could affect model generalization.
 
-### Other Known Limitations
-- Some annotation artifacts may exist due to low-light conditions or video compression.
-- Certain edge cases, such as partially visible riders, are not comprehensively covered.
-
 ## Additional Information
 
-### Dataset Curators
-RideSafe-500 was curated by a team of researchers from XYZ University, led by [Your Name].
+### Dataset Access
+Reach out to `deepti.rawat@research.iiit.ac.in` for queries.
 
 ### Licensing Information
 The dataset is released under a Creative Commons Attribution-NonCommercial-ShareAlike (CC BY-NC-SA) license.
 
-### Citation Information
-To cite RideSafe-500:
-```
-@dataset{ridesafe500,  
-  author = {Your Name and Team},  
-  title = {RideSafe-500: A Dataset for Two-Wheeler Traffic Violations},  
-  year = {2024},  
-  publisher = {XYZ University},  
-  url = {https://github.com/ridesafe500}  
-}
-```
-
 ### Acknowledgements
 Thanks to IHub-Data, IIIT-H for supporting this work.
-  
