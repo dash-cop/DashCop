@@ -1,16 +1,10 @@
 import sys
 # sys.path.append('/home2/keshav06/.local/lib/python3.6/site-packages')
-import os
-import shutil
-import time
 from PIL import Image
-import cv2
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 from ultralytics import YOLO
 # from core.association import *
-import matplotlib.pyplot as plt
 
 class HNHModel():
     def __init__(self, weights_path, conf_score=0.5):

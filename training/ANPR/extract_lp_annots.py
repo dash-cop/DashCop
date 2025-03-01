@@ -94,9 +94,6 @@ def get_rm_instances(root):
                         frame_wise_motor[frame] = []
                     frame_wise_motor[frame].append({'track_id':motorcycle_id, 'xmin':xmin, 'ymin':ymin, 'xmax':xmax, 'ymax':ymax})
 
-    # print(frame_wise_riders)
-    # print(frame_wise_motor)
-
     # loop through all the frames which are keys in frame_wise_riders, then loop through all the riders in that frame and then loop through all the motorcycles in that frame and assign the id of the motorcycle as the associated_motorcycle_id of the rider with the highest IoU
 
     for key in frame_wise_riders.keys():
@@ -150,13 +147,6 @@ for i, task_name in enumerate(task_names):
         print("Starting folder:", idd_folder)
         print("Left to process:", len(xml_folders) - i - 1)
 
-        # print(idd_folder)
-        # print(video_folder)
-        # videos = os.listdir(video_folder
-        # video_name = videos[0]
-        # print(video_name)
-        # if video_name != '2745.mp4':
-        #     continue
         video_name = task_name.split('.')[0]
         print("Processing video:", video_path)
         # annotation is in the folder/annotation.xml
@@ -166,13 +156,6 @@ for i, task_name in enumerate(task_names):
         print("Starting folder:", task_name)
         print("Left to process:", len(task_names) - i - 1)
 
-        # print(idd_folder)
-        # print(video_folder)
-        # videos = os.listdir(video_folder
-        # video_name = videos[0]
-        # print(video_name)
-        # if video_name != '2745.mp4':
-        #     continue
         video_name = task_name.split('/')[-1] + '.mp4'
         print("Processing video:", video_name)
         # annotation is in the folder/annotation.xml
@@ -206,11 +189,6 @@ for i, task_name in enumerate(task_names):
             continue
 
         frame_width, frame_height = frame.shape[1], frame.shape[0]
-        # print(frame_number, frame_width, frame_height)
-        # print(frame_width, frame_height)
-
-        # print(frame_number, frame_width, frame_height)
-
 
         motor_list = frame_wise_motor[frame_number]
         rider_list = frame_wise_riders[frame_number]
@@ -314,8 +292,6 @@ for i, task_name in enumerate(task_names):
                     os.remove('license_plates/' + train_or_test + '/labels/' + video_name + '_' + str(frame_number) + '_' + str(instance_num) + '.txt')
                     # remove the image file if license plates are not present
                     os.remove('license_plates/' + train_or_test + '/images/' + video_name + '_' + str(frame_number) + '_' + str(instance_num) + '.jpg')
-                    # save frame as video_name_frame_number.jpg file in hnh/train/bg
-                    # cv2.imwrite('hnh/train/bg/' + video_name[:-4] + '_' + str(frame_number) + '.jpg', frame)
 
                 
                 all_license_plates += license_plates

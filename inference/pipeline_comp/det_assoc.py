@@ -1,8 +1,5 @@
 import sys
 # sys.path.append('/home2/keshav06/.local/lib/python3.6/site-packages')
-import os
-import shutil
-import time
 from PIL import Image
 import cv2
 import numpy as np
