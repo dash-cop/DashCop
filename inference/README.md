@@ -6,11 +6,11 @@ This directory contains the code for inference and running the traffic violation
 
 - **`pipeline_comp/`**: Contains the code for different sections of the pipeline.
 - **`tracker/`**: Contains the code for the association tracker.
-- **`ultralytics/`**: Contains the code for CAS and other detection models derived from YOLOv8.
+- **`ultralytics/`**: Contains the code for SAC and other detection models derived from YOLOv8.
 - **`pipeline.py`**: Main Python file that orchestrates the pipeline. It includes various flags to customize the pipeline execution.
 
 ## Download Pretrained Weights
-You can download the pretrained weights for CAS, HHN, and the TR-Classifier here
+You can download the pretrained weights for SAC, HHN, and the TR-Classifier here
 https://drive.google.com/drive/folders/1NWt42_Sr7jxuAVZq2nQOm0LiZmE_3nYz?usp=drive_link
 
 ## Running the Pipeline
