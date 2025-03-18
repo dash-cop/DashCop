@@ -9,10 +9,9 @@ import torch.nn.functional as F
 import sys
 sys.path.append('/home2/keshav06/miniconda3/envs/keshav/lib/python3.8/site-packages/MultiScaleDeformableAttention-1.0-py3.8-linux-x86_64.egg/modules/ms_deform_attn.py')
 sys.path.append('/home2/keshav06/TrafficViolations/deep-text-recognition-benchmark/modules')
-sys.path.append('/home2/keshav06/TrafficViolations/deep-text-recognition-benchmark/')
+sys.path.append('/home2/deepti.rawat/space_issue/home/keshav/deep-text-recognition-benchmark/')
 # sys.path.insert(0, '/home2/keshav06/TrafficViolations/deep-text-recognition-benchmark')
 from .lp_utils import CTCLabelConverter, AttnLabelConverter
-from dataset import RawDataset, AlignCollate
 from model import Model
 import os
 import torchvision.transforms as transforms
@@ -66,7 +65,6 @@ def deskew_plate(image):
 
     cropped_image = image[top_most_point[1]:bottom_most_point[1], left_most_point[0]:right_most_point[0]]
     image = cropped_image
-
 
     # print(rect)
     angle = rect[2]
@@ -139,14 +137,17 @@ class LicensePlateDet():
         preds is a YOLOv8 object 
         frame is the img of the detection 
         '''
-        preds = self.model(frame, conf = self.conf_score)[0]
+        preds = self.model(frame, imgsz=640, conf = self.conf_score)[0]
         boxes = preds.boxes
         boxes_lp = boxes.xyxy.detach().cpu().numpy()
         
+        print("BEFORE LP : ", boxes_lp)
         # Normalize the bounding boxes
         # Bounding boxes are in normalized ymin, xmin, ymax, xmax
         boxes_lp[:, 0::2] /= frame.shape[1]
         boxes_lp[:, 1::2] /= frame.shape[0]
+        
+        print("AFTER LP : ", boxes_lp)
 
         # Get the scores and classes
         scores_lp = boxes.conf.detach().cpu().numpy()
@@ -221,7 +222,6 @@ class OCR():
         self.model = torch.nn.DataParallel(model).to(device)
         state_dict = torch.load(opt.saved_model, map_location=device)
         self.model.load_state_dict(torch.load(opt.saved_model, map_location=device))
-        self.AlignCollate_demo = AlignCollate(imgH=opt.imgH, imgW=opt.imgW, keep_ratio_with_pad=opt.PAD)
         self.model.eval()
         self.model.to(device)
         self.transform = ResizeNormalize((100, 32))
@@ -280,12 +280,15 @@ class LicensePlateModel():
         bboxes, scores, _ = self.detector(frame)
         # Recognize the detections
         lp_numbers = []
+        lp_confs = []
         for box in bboxes:
             l, t, r, b = box.astype(np.int32)
+            print("License Plate Box:", l, t, r, b)
             crop = frame[t:b, l:r, :]
             crop = deskew_plate(crop)
             if(crop is None):
                 lp_numbers.append(None)
+                lp_confs.append(0)
                 continue
             crop = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
             lp_box_img = Image.fromarray(crop).convert('L')
@@ -295,5 +298,6 @@ class LicensePlateModel():
             else:
                 lp_num, current_conf = None, None
             lp_numbers.append(lp_num)
+            lp_confs.append(current_conf)
         
-        return bboxes, lp_numbers
+        return bboxes, lp_numbers, lp_confs
