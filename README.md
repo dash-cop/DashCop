@@ -10,5 +10,5 @@ To run inference on your videos, navigate to the `inference` directory. To under
 
 ![alt text](./training/image/method.png "Method")
 
-For queries regarding weight files and the dataset, contact:
+For queries, contact:
 `deepti.rawat@research.iiit.ac.in`
