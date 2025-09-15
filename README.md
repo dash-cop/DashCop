@@ -10,7 +10,7 @@ To run inference on your videos, navigate to the `inference` directory. To under
 
 ![alt text](./training/image/method.png "Method")
 
-Dataset
+Dataset:
 https://huggingface.co/datasets/DeepBug/RideSafe-400
 
 For queries, contact:
