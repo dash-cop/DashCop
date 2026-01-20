@@ -13,7 +13,7 @@ To run inference on your videos, navigate to the `inference` directory. To under
 Dataset:
 https://huggingface.co/datasets/DeepBug/RideSafe-400
 
-Main Paper with Supplementary: ![alt text](https://drive.google.com/file/d/1p7rS9s4c1DCLV0nygs4b0MNexbbTdsKt/view?usp=sharing)
+Main Paper with Supplementary: https://drive.google.com/file/d/1p7rS9s4c1DCLV0nygs4b0MNexbbTdsKt/view?usp=sharing
 
 For queries, contact:
 `deepti.rawat@research.iiit.ac.in`
