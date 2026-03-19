@@ -1,0 +1,53 @@
+# Triple Riding Classification Dataset Configuration
+# Uses class-folder structure for training the triple riding classifier
+
+# Path to dataset root directory
+path: /ssd_scratch/sai.teja/tr_dataset_ogsplit
+
+# Dataset structure:
+# path/
+# ├── train/
+# │   ├── 0_none/      # No riders
+# │   ├── 1_single/    # Single rider
+# │   ├── 2_double/    # Two riders
+# │   └── 3_triple/    # Three+ riders
+# └── val/
+#     ├── 0_none/
+#     ├── 1_single/
+#     ├── 2_double/
+#     └── 3_triple/
+
+# Number of classes
+nc: 4
+
+# Class names
+names:
+  0: none
+  1: single
+  2: double
+  3: triple
+
+# Training hyperparameters
+epochs: 20     #normal epochs -> 100 && progressive unfreeze -> 20
+batch_size: 32
+imgsz: 224
+lr: 0.0001     #normal lr -> 0.001 && progressive unfreeze -> 0.0001
+patience: 7  # early stopping patience
+
+# Model paths
+sac_weights: /archive/sai.teja/SAC_models/lr0p01_md_data_2/weights/best.pt
+
+# Checkpoint save path
+checkpoint_dir: /ssd_scratch/sai.teja/triple_violations/checkpoints_ogsplit_default/weighted
+checkpoint_name: tr_clf_default_puf.ckpt
+
+# Device configuration
+device: 1  # GPU device id, use 'cpu' for CPU training
+
+freeze_all_except_classifier: True  # True -> train classifier, freeze everything else, False -> train layer 15, cv4 and classifier
+
+# if this is true above one is ignored (use for progressive unfreeze)
+unfreeze_all: True # True -> train all layers, False -> train only classifier,
+
+# Weighted sampling for imbalanced dataset (oversamples minority classes)
+weighted_sampling: True

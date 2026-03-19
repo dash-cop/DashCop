@@ -25,6 +25,7 @@ To compute the precision, recall, and F1-score for detecting triple riding viola
 1. Run `clf_infer.py` for inference using the helmet/no-helmet detector.  
    - For multi-GPU inference, use `clf_infer_multi.py`.  
 2. Run `tr_eval.py` to compute the evaluation metrics (precision, recall, F1-score).
+3. Run `extract_triple_crops_gt.py` to get the ground truth crops for the triple riding violations, which are used in tr_eval.py to get the final evaluation metrics.
 
 ## End-to-End Pipeline: Challan Rate Calculation
 

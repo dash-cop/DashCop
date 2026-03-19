@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append('../')
 sys.path.append('tracker')
 sys.path.append('/home2/keshav06/.local/lib/python3.6/site-packages')
@@ -18,13 +19,16 @@ import matplotlib.pyplot as plt
 from instance_funcs import *
 
 from ultralytics import YOLO
-# from core.association import *
-import matplotlib.pyplot as plt
+from ultralytics.nn.tasks import SegmentationModel
+
+# Fix for PyTorch 2.6+ weights_only=True blocking Ultralytics weights
+# torch.serialization.add_safe_globals([SegmentationModel])
+
 
 from transformers import VisionEncoderDecoderModel, TrOCRForCausalLM
 from transformers import TrOCRProcessor
 from pipeline_comp.det_assoc import DetAssoc
-from pipeline_comp.yolo_clf import YOLOClf
+from pipeline_comp.yolo_clf_new import YOLOClf #change the architecture based on tr_clf's new or old architecture
 # from pipeline_comp.lp import LicensePlateModel
 from pipeline_comp.hnh import HNHModel
 
@@ -36,28 +40,31 @@ sys.path.append('tracker/fast_reid/fastreid')
 sys.path.append('tracker/fast_reid/fastreid/data')
 from tracker.assoc_tracker.assoc_tracker import *
 
-flags.DEFINE_string('video', '/ssd_scratch//cvit/keshav/dashcop/Video_set_1/videos/20211109152409_0060.mp4', 'path to input video or set to 0 for webcam')
-flags.DEFINE_string('output', '/ssd_scratch/cvit/keshav/outputs/20211109152409_0060_inferred.mp4', 'path to raw output video')
+flags.DEFINE_string('video', '/nas/deepti.rawat/Wrong-side-driving/Videos/videoset1/original_videos/20211125132806_0060.mp4', 'path to input video or set to 0 for webcam')
+flags.DEFINE_string('output', '/ssd_scratch/cvit/saiteja/outputs/20211125132806_0060_inferred.mp4', 'path to raw output video')
 flags.DEFINE_integer('frame_start', 0, 'frame start')
-flags.DEFINE_integer('frame_max', 100, 'frame max')
+flags.DEFINE_integer('frame_max', 2000, 'frame max')
 flags.DEFINE_boolean('infer_lp', False, 'infer license plates or not')
-flags.DEFINE_boolean('infer_hnh', True, 'infer helmet/no-helmet or not')
-flags.DEFINE_boolean('clf', True, 'use clf or not')
+flags.DEFINE_boolean('infer_hnh', False, 'infer helmet/no-helmet or not')
+flags.DEFINE_boolean('clf', False, 'use clf or not')
 flags.DEFINE_string('tracker_config', './tracker/assoc_tracker/base_cfg.yaml', 'path to assoc tracker config')
-flags.DEFINE_string('rm_weights', '/ssd_scratch/cvit/keshav/weights/model_ft.pt', 'path to rider motorcyle assoc weights')
-flags.DEFINE_string('hnh_weights', '/ssd_scratch/cvit/keshav/weights/hnh_frame.pt', 'path to helmet/no-helmet weights')
-flags.DEFINE_string('clf_weights', '/ssd_scratch/cvit/keshav/weights/tr_clf.ckpt', 'path to helmet/no-helmet weights')
-flags.DEFINE_string('lp_det_weights', '/ssd_scratch/cvit/keshav/weights/lp_det.pt', 'path to lp det weights')
-flags.DEFINE_string('lp_rec_weights', '/ssd_scratch/cvit/keshav/weights/lp_rec', 'path to lp-rec model -> dtrb weights')
+flags.DEFINE_string('rm_weights', '/archive/sai.teja/SAC_models/sam3_data_model/weights/best_compat.pt', 'path to rider motorcyle assoc weights')
+flags.DEFINE_string('hnh_weights', '/archive/sai.teja/DashCop_ckpts/hnh_weights/hnh_frame.pt', 'path to helmet/no-helmet weights')
+flags.DEFINE_string('clf_weights', '/archive/sai.teja/DashCop_ckpts/tr_checkpoints/tr_clf.ckpt', 'path to triple-riding classifier weights')
+flags.DEFINE_boolean('raw', True, 'use raw argmax for newly trained models (0=none,1=single,2=double,3=triple). '
+                     'Without this flag the legacy +1/4→0 remapping is used (old models).')
+flags.DEFINE_string('lp_det_weights', '/ssd_scratch/cvit/saiteja/weights/lp_det.pt', 'path to lp det weights')
+flags.DEFINE_string('lp_rec_weights', '/ssd_scratch/cvit/saiteja/weights/lp_rec', 'path to lp-rec model -> dtrb weights')
 flags.DEFINE_boolean('dont_show', True, 'dont show video output')
 
 def main(_argv):
+
     
     tracker_assoc = AssocTracker(FLAGS.tracker_config)
     rm_model = DetAssoc(weights_path=FLAGS.rm_weights, conf_score=0.5)
     clf = FLAGS.clf
-    save_root = "/ssd_scratch/cvit/keshav/inferred_vids_assoc/" # add a / in the end
-    txt_file_root = "/ssd_scratch/cvit/keshav/txt_files_assoc/" # add a / in the end
+    save_root = "/data3/sai.teja/vids_assoc_sam3/" # add a / in the end
+    txt_file_root = "/ssd_scratch/sai.teja/txt_assoc_sam3/" # add a / in the end
     os.makedirs(save_root, exist_ok=True)
     os.makedirs(txt_file_root, exist_ok=True)
 
@@ -65,7 +72,8 @@ def main(_argv):
         FLAGS.output = save_root + FLAGS.video.split("/")[-1][:-4] + "_det.mp4"
     else:
         FLAGS.output = save_root + FLAGS.video.split("/")[-1][:-4] + ".mp4"
-        dt_classifier = YOLOClf(weights_path=FLAGS.clf_weights, rm_assoc_path=FLAGS.rm_weights)
+        dt_classifier = YOLOClf(weights_path=FLAGS.clf_weights, rm_assoc_path=FLAGS.rm_weights,
+                                raw=FLAGS.raw)
 
     if(FLAGS.infer_lp):
         lp_model = LicensePlateModel(det_weights=FLAGS.lp_det_weights, rec_weights=FLAGS.lp_rec_weights)
@@ -255,19 +263,26 @@ def main(_argv):
                     if(iou > max_iou):
                         max_iou = iou
                         max_iou_aid = aid
-                hnh_mapping[i] = aid
-                try:
-                    aid_hnh_mapping[aid].append(i)
-                except:
-                    aid_hnh_mapping[aid] = [i]
+                hnh_mapping[i] = max_iou_aid
+                if max_iou_aid != -1:
+                    try:
+                        aid_hnh_mapping[max_iou_aid].append(i)
+                    except:
+                        aid_hnh_mapping[max_iou_aid] = [i]
         
         for aid, instance in assocs.items():
             l, t, r, b = all_instances_boxes[aid]
             try:
                 inst_crop = img[t:b, l:r, :]
-                inst_crop = cv2.cvtColor(inst_crop, cv2.COLOR_BGR2RGB) 
+                inst_crop = cv2.cvtColor(inst_crop, cv2.COLOR_BGR2RGB)
                 output = dt_classifier(inst_crop)
-                num_riders = output + 1
+                if FLAGS.raw:
+                    # New model: output is already rider count (0=none,1=single,2=double,3=triple)
+                    num_riders = output
+                else:
+                    # Old model: output is remapped rider count (0=none,1=single,2=double,3=triple)
+                    # (YOLOClf already applies the +1/4→0 mapping, so output is comparable)
+                    num_riders = output + 1
             except:
                 num_riders = 0
             
@@ -332,7 +347,7 @@ def main(_argv):
 
     print("LOOP 1 OVER")
     print("##############")
-    print((time.time() - t0) / 60)
+    print((time.time() - t0) / 60 ,"minutes")
 
 
 if __name__ == '__main__':

@@ -54,7 +54,26 @@ The `pipeline.py` script uses flags for configuration. Below are the available f
    - Install the required dependencies.
    - Verify the paths to weights and configuration files.
 
-3. **Run the Pipeline**:
+3. **Install Gurobi**:
+   - Download Gurobi software from [Gurobi Website](https://www.gurobi.com/downloads/)
+   - Install Gurobi software using the following commands:
+     ```bash
+     tar -xvzf gurobi13.0.0_linux64tar.gz
+     ```
+   - Set up the environment variables
+     ```bash
+     export GUROBI_HOME="/home/sai.teja/gurobi1300/linux64"
+     export PATH="${GUROBI_HOME}/bin:${PATH}"
+     export LD_LIBRARY_PATH="${GUROBI_HOME}/lib:${LD_LIBRARY_PATH}"
+     ```
+   - Get the license key from [Gurobi Website](https://www.gurobi.com/downloads/)
+   - Install the license key using the following command(You will get the command when you get the license key):
+     ```bash
+     grbgetkey <license_key>
+     ```
+   - Youtube link for gurobi installation: https://www.youtube.com/watch?v=OYuOKXPJ5PI
+
+4. **Run the Pipeline**:
    ```bash
    python pipeline.py \
        --video /path/to/video.mp4 \
@@ -73,5 +92,6 @@ The `pipeline.py` script uses flags for configuration. Below are the available f
        --dont_show True
    ```
 
-4. **Customize Flags**: Adjust the flags as needed to suit your use case.
+5. **Customize Flags**: Adjust the flags as needed to suit your use case.
+6. **Multi-GPU Inference**: Run `run_eval_pipeline.py` to execute the pipeline concurrently across multiple GPUs.
 

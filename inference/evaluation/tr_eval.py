@@ -1,12 +1,85 @@
 import os
+import sys  
+
+# Add parent directory and pipeline_comp to path for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)  # inference/
+pipeline_comp_dir = os.path.join(parent_dir, 'pipeline_comp')  # inference/pipeline_comp/
+
+sys.path.insert(0, parent_dir)
+sys.path.insert(0, pipeline_comp_dir)
 import glob
 import cv2
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
 from instance_funcs import *
 
-all_gt_files = glob.glob("/ssd_scratch/cvit/keshav/dashcop/Video_set_1/instance_crops_gt/*.txt")
-all_pred_files = ["/ssd_scratch/cvit/keshav/dashcop/Video_set_1/instance_crops_newww_clf_pred_102/" + file.split('/')[-1] for file in all_gt_files]
+
+
+def get_matches(boxes1, boxes2, thresh = 0.7, use_iou = False):
+    matches = []
+    fp = []
+    fn = []
+    
+    # calculate the intersection area between each pair of boxes of boxes1 and boxes2. It will be an m x n matrix where m is the number of boxes in boxes1 and n is the number of boxes in boxes2.
+    intersection_matrix = []
+    for box1 in boxes1:
+        intersection_row = []
+        for box2 in boxes2:
+            # calculate the intersection area
+            x1 = max(box1[0], box2[0])
+            y1 = max(box1[1], box2[1])
+            x2 = min(box1[2], box2[2])
+            y2 = min(box1[3], box2[3])
+            intersection_area = max(0, x2 - x1 + 1) * max(0, y2 - y1 + 1)
+            if use_iou:
+                iou = intersection_area / ((box1[2] - box1[0] + 1) * (box1[3] - box1[1] + 1) + (box2[2] - box2[0] + 1) * (box2[3] - box2[1] + 1) - intersection_area)
+                intersection_row.append(iou)
+            else:
+                # divide the intersection area by the area of the box1
+                intersection_area = intersection_area / ((box1[2] - box1[0] + 1) * (box1[3] - box1[1] + 1))
+                intersection_row.append(intersection_area)
+        intersection_matrix.append(intersection_row)
+
+    # print(intersection_matrix)
+
+    # perform matching in the intersection_matrix such that the sum of the intersection areas of the matched pairs is maximized
+    while True:
+        max_intersection = 0
+        max_intersection_index = (0, 0)
+        for i in range(len(intersection_matrix)):
+            for j in range(len(intersection_matrix[i])):
+                if intersection_matrix[i][j] > max_intersection:
+                    max_intersection = intersection_matrix[i][j]
+                    max_intersection_index = (i, j)
+        if max_intersection < thresh:
+            break
+        matches.append((max_intersection_index[0], max_intersection_index[1]))
+        # set the intersection areas of the matched boxes to 0
+        for i in range(len(intersection_matrix)):
+            intersection_matrix[i][max_intersection_index[1]] = 0
+        for j in range(len(intersection_matrix[max_intersection_index[0]])):
+            intersection_matrix[max_intersection_index[0]][j] = 0
+
+    # get the false positives and false negatives
+    for i in range(len(boxes1)):
+        if i not in [match[0] for match in matches]:
+            fp.append(boxes1[i])
+    for j in range(len(boxes2)):
+        if j not in [match[1] for match in matches]:
+            fn.append(boxes2[j])
+
+    return matches, fp, fn
+
+
+# Toggle to control image saving
+SAVE_IMAGES = False
+
+all_gt_files = glob.glob("/ssd_scratch/sai.teja/triple_riding/videoset1/instance_crops_gt/*.txt")
+all_pred_files = ["/ssd_scratch/sai.teja/triple_riding/videoset1/clf_pred_weighted_default_puf/" + file.split('/')[-1] for file in all_gt_files]
 
 # if it does not exist, create a folder challan_rate_calc_input_tr, else remove all files in the folder
 if not os.path.exists('challan_rate_calc_input_tr'):
@@ -15,6 +88,11 @@ else:
     for subdir in os.listdir('challan_rate_calc_input_tr'):
         for filename in os.listdir('challan_rate_calc_input_tr/' + subdir):
             os.remove('challan_rate_calc_input_tr/' + subdir + '/' + filename)
+
+# Create output directory if it doesn't exist
+output_dir = "./output"
+os.makedirs(output_dir, exist_ok=True)
+conf_matrix_path = os.path.join(output_dir, "cnf_weighted_default_puf.png")
 
 max_f1_score = 0
 max_thresh = 0
@@ -50,23 +128,24 @@ for inst_area_threshold in [0.014]:
 
     import os
 
-    if not os.path.exists("fn_annots"):
-        os.makedirs("fn_annots")
-    else :
-        for file in os.listdir("fn_annots"):
-            os.remove(os.path.join("fn_annots", file))
+    if SAVE_IMAGES:
+        if not os.path.exists("fn_annots"):
+            os.makedirs("fn_annots")
+        else :
+            for file in os.listdir("fn_annots"):
+                os.remove(os.path.join("fn_annots", file))
 
-    if not os.path.exists("fp_annots"):
-        os.makedirs("fp_annots")
-    else :
-        for file in os.listdir("fp_annots"):
-            os.remove(os.path.join("fp_annots", file))
+        if not os.path.exists("fp_annots"):
+            os.makedirs("fp_annots")
+        else :
+            for file in os.listdir("fp_annots"):
+                os.remove(os.path.join("fp_annots", file))
 
-    if not os.path.exists("tp_annots"):
-        os.makedirs("tp_annots")
-    else :
-        for file in os.listdir("tp_annots"):
-            os.remove(os.path.join("tp_annots", file))
+        if not os.path.exists("tp_annots"):
+            os.makedirs("tp_annots")
+        else :
+            for file in os.listdir("tp_annots"):
+                os.remove(os.path.join("tp_annots", file))
 
 
     for i, gt_file in enumerate(all_gt_files):
@@ -79,14 +158,15 @@ for inst_area_threshold in [0.014]:
 
         # read the video name from /ssd_scratch/cvit/Video_set_1/videos/vid_name.mp4
         all_frames = []
-        vid_path = "/ssd_scratch/cvit/keshav/dashcop/Video_set_1/videos/" + vid_name + ".mp4"
-        cap = cv2.VideoCapture(vid_path)
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            all_frames.append(frame)
-        cap.release()
+        if SAVE_IMAGES:
+            vid_path = "/ssd_scratch/cvit/saiteja/triple_riding/videoset1/videos/" + vid_name + ".mp4"
+            cap = cv2.VideoCapture(vid_path)
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                all_frames.append(frame)
+            cap.release()
         folder = vid_name
         pred_file = all_pred_files[i]
         count = {}
@@ -236,32 +316,33 @@ for inst_area_threshold in [0.014]:
         print("TR")
         print(false_negatives)
         print(vid_name)
-        for fn in false_negatives:
-            gt_id = fn
-            gt_frames = our_all_gt_tracks[gt_id]
-            for f_idx in gt_frames:
-                frame_num = f_idx[0]
-                frame = all_frames[frame_num]
-                xmin, ymin, xmax, ymax = f_idx[1], f_idx[2], f_idx[3], f_idx[4]
-                cv2.rectangle(frame, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 0, 255), 2)
-                cv2.putText(frame, str(gt_id), (int(xmin), int(ymin)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        if SAVE_IMAGES:
+            for fn in false_negatives:
+                gt_id = fn
+                gt_frames = our_all_gt_tracks[gt_id]
+                for f_idx in gt_frames:
+                    frame_num = f_idx[0]
+                    frame = all_frames[frame_num]
+                    xmin, ymin, xmax, ymax = f_idx[1], f_idx[2], f_idx[3], f_idx[4]
+                    cv2.rectangle(frame, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 0, 255), 2)
+                    cv2.putText(frame, str(gt_id), (int(xmin), int(ymin)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-        for f_idx in our_all_pred_tracks.keys():
-            if our_all_pred_tracks[f_idx] == []:
-                continue
-            print(f_idx)
-            frame = all_frames[f_idx]
-            for pred_track in our_all_pred_tracks[f_idx]:
-                xmin, ymin, xmax, ymax = pred_track[0], pred_track[1], pred_track[2], pred_track[3]
-                cv2.rectangle(frame, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 255, 0), 2)
-                cv2.putText(frame, str(pred_track[4]), (int(xmin), int(ymin)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            for f_idx in our_all_pred_tracks.keys():
+                if our_all_pred_tracks[f_idx] == []:
+                    continue
+                print(f_idx)
+                frame = all_frames[f_idx]
+                for pred_track in our_all_pred_tracks[f_idx]:
+                    xmin, ymin, xmax, ymax = pred_track[0], pred_track[1], pred_track[2], pred_track[3]
+                    cv2.rectangle(frame, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 255, 0), 2)
+                    cv2.putText(frame, str(pred_track[4]), (int(xmin), int(ymin)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-        for fn in false_negatives:
-            for f_idx in our_all_gt_tracks[fn]:
-                # save the frame to fn_annots as video_name_frame_num.jpg
-                frame_num = f_idx[0]
-                frame = all_frames[frame_num]
-                cv2.imwrite(f"./fn_annots/{vid_name}_{frame_num}.jpg", frame)
+            for fn in false_negatives:
+                for f_idx in our_all_gt_tracks[fn]:
+                    # save the frame to fn_annots as video_name_frame_num.jpg
+                    frame_num = f_idx[0]
+                    frame = all_frames[frame_num]
+                    cv2.imwrite(f"./fn_annots/{vid_name}_{frame_num}.jpg", frame)
         
         conf_mat[2, 1] += len(false_negatives)
         for fn in false_negatives:
@@ -287,16 +368,17 @@ for inst_area_threshold in [0.014]:
         false_positives = np.setdiff1d(unique_pred_TR_violations, matched_preds_track_ids)
         conf_mat[0, 2] += len(false_positives)
 
-        for fp in false_positives:
-            fp_id = fp
-            pred_frames = our_all_pred_tracks_ids[fp_id]
-            for f_idx in pred_frames:
-                frame_num = f_idx[0]
-                frame = all_frames[frame_num]
-                xmin, ymin, xmax, ymax = f_idx[1], f_idx[2], f_idx[3], f_idx[4]
-                cv2.rectangle(frame, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 0, 255), 2)
-                cv2.putText(frame, str(fp_id), (int(xmin), int(ymin)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-                cv2.imwrite(f"./fp_annots/{vid_name}_{frame_num}.jpg", frame)
+        if SAVE_IMAGES:
+            for fp in false_positives:
+                fp_id = fp
+                pred_frames = our_all_pred_tracks_ids[fp_id]
+                for f_idx in pred_frames:
+                    frame_num = f_idx[0]
+                    frame = all_frames[frame_num]
+                    xmin, ymin, xmax, ymax = f_idx[1], f_idx[2], f_idx[3], f_idx[4]
+                    cv2.rectangle(frame, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 0, 255), 2)
+                    cv2.putText(frame, str(fp_id), (int(xmin), int(ymin)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    cv2.imwrite(f"./fp_annots/{vid_name}_{frame_num}.jpg", frame)
 
         print("folder: ", folder)
         # print("tracks_gt_to_pred: ", tracks_gt_to_pred)
@@ -496,12 +578,67 @@ for inst_area_threshold in [0.014]:
     fp = normalized_conf_mat[1, 0] + normalized_conf_mat[1, 2]
     fn = normalized_conf_mat[0, 1] + normalized_conf_mat[2, 1]
 
-    print("Precision: ", tp/(tp + fp))
-    print("Recall: ", tp/(tp + fn))
-    print("F1 Score: ", 2*tp/(2*tp + fp + fn))
-    max_f1_score = max(max_f1_score, 2*tp/(2*tp + fp + fn))
-    if(max_f1_score == 2*tp/(2*tp + fp + fn)):
+    precision = tp/(tp + fp)
+    recall = tp/(tp + fn)
+    f1_score = 2*tp/(2*tp + fp + fn)
+    
+    print("Precision: ", precision)
+    print("Recall: ", recall)
+    print("F1 Score: ", f1_score)
+    max_f1_score = max(max_f1_score, f1_score)
+    if(max_f1_score == f1_score):
         max_thresh = inst_area_threshold
+    
+    # Create confusion matrix visualization with metrics on left, matrix on bottom right
+    fig = plt.figure(figsize=(14, 8))
+    
+    # Add axis for confusion matrix in bottom right
+    ax = fig.add_axes([0.5, 0.15, 0.42, 0.7])  # [left, bottom, width, height]
+    
+    # Plot raw confusion matrix
+    im = ax.imshow(conf_mat, cmap='Blues', aspect='auto')
+    ax.set_xticks(np.arange(3))
+    ax.set_yticks(np.arange(3))
+    ax.set_xticklabels(['No Violation\n(GT)', 'Violation\n(GT)', 'False Positives'], fontsize=12)
+    ax.set_yticklabels(['Pred: No Violation', 'Pred: Violation', 'False Negatives'], fontsize=12)
+    ax.set_xlabel('Ground Truth', fontsize=14, fontweight='bold')
+    ax.set_ylabel('Predictions', fontsize=14, fontweight='bold')
+    ax.set_title('Confusion Matrix - Triple Riding Detection', fontsize=16, fontweight='bold', pad=20)
+    
+    # Add text annotations for raw confusion matrix
+    for i in range(3):
+        for j in range(3):
+            text = ax.text(j, i, f'{int(conf_mat[i, j])}',
+                          ha="center", va="center", color="black" if conf_mat[i, j] < conf_mat.max()/2 else "white",
+                          fontsize=16, fontweight='bold')
+    
+    plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    
+    # Add metrics text box on the left side
+    metrics_text = 'Performance Metrics\n' + '='*40 + '\n\n'
+    metrics_text += f'Precision:  {precision:.4f} ({precision*100:.2f}%)\n\n'
+    metrics_text += f'Recall:     {recall:.4f} ({recall*100:.2f}%)\n\n'
+    metrics_text += f'F1 Score:   {f1_score:.4f} ({f1_score*100:.2f}%)\n\n'
+    metrics_text += '='*40 + '\n\n'
+    metrics_text += f'Correct Non-Violations:\n  {correct_instances_NO_TR_violation}/{total_instances_NO_TR_violation} '
+    metrics_text += f'({100*correct_instances_NO_TR_violation/total_instances_NO_TR_violation:.1f}%)\n\n'
+    metrics_text += f'Correct Violations:\n  {correct_instances_TR_violation}/{total_instances_TR_violation} '
+    metrics_text += f'({100*correct_instances_TR_violation/total_instances_TR_violation:.1f}%)\n\n'
+    metrics_text += '='*40 + '\n\n'
+    metrics_text += f'Area Threshold: {inst_area_threshold}'
+    
+    # Place text box on the left
+    fig.text(0.08, 0.5, metrics_text, ha='left', va='center', fontsize=12, 
+             bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.3, pad=1),
+             family='monospace')
+    
+
+    
+    # Save the figure
+    output_path = os.path.join(conf_matrix_path)
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    print(f"\nConfusion matrix saved to: {output_path}")
+    plt.close()
 
 print("Max F1 Score: ", max_f1_score)
 print("Max Threshold: ", max_thresh)

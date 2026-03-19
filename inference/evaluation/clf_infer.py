@@ -1,16 +1,57 @@
+import os
+import sys
+
+
+# Add parent directory and pipeline_comp to path for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)  # inference/
+pipeline_comp_dir = os.path.join(parent_dir, 'pipeline_comp')  # inference/pipeline_comp/
+
+sys.path.insert(0, parent_dir)
+sys.path.insert(0, pipeline_comp_dir)
+
+
 import xml.etree.ElementTree as ET
 import glob
 import cv2
 import numpy as np
-import os
+from tqdm import tqdm
+
 from instance_funcs import *
 from models.load import *
-from scipy.optimize import linear_sum_assignment
-
+# from scipy.optimize import linear_sum_assignment
 from models.lit_model import Model
+from yolo_clf_new import YOLOClf
 
-# rm_preds = glob.glob("/ssd_scratch/cvit/Video_set_1/instance_crops_pred_new/*.txt")
-rm_preds = glob.glob("/ssd_scratch/cvit/Video_set_1/rm_preds/*_data.txt")
+print("modules loaded successfully")
+
+# Model paths
+
+# Flag for handling new vs old model outputs
+# True: raw argmax for newly trained models (0=none,1=single,2=double,3=triple)
+# False: legacy +1/4→0 remapping for old models
+RAW_MODE = True
+
+# rm_preds = glob.glob("/ssd_scratch/Video_set_1/instance_crops_pred_new/*.txt")
+rm_preds = glob.glob("/ssd_scratch/sai.teja/txt_assoc_default/*_data.txt")
+
+assoc_weigth_path = "/archive/sai.teja/SAC_models/lr0p01_md_data_2/weights/best_compat.pt"
+clf_weights = "/data3/sai.teja/triple_violations/checkpoints_ogsplit_default/weighted/tr_clf_default_puf.ckpt"
+
+#check if the above folders exist, else exit with an error
+if not os.path.exists(assoc_weigth_path) or not os.path.exists(clf_weights):
+    print("Error: One or more model weight paths do not exist.")
+    sys.exit(1)
+
+if len(rm_preds) == 0:
+    print("Error: No prediction files found in the specified directory.")
+    sys.exit(1)
+
+out_annots_folder = "/ssd_scratch/sai.teja/rm_preds_annots_default_puf"
+os.makedirs(out_annots_folder, exist_ok=True)
+
+out_txt_preds = "/ssd_scratch/sai.teja/triple_riding/videoset1/clf_pred_weighted_default_puf/"
+os.makedirs(out_txt_preds, exist_ok=True)
 
 def get_intersection_cost_matrix(riders, motorycles):
     """
@@ -29,33 +70,18 @@ def get_intersection_cost_matrix(riders, motorycles):
             intersection_percentage = intersection_area / h_area
             intersection_percentages.append(1-intersection_percentage)
         intersection_percentage_matrix.append(intersection_percentages)
-    print(intersection_percentage_matrix)
+    # print(intersection_percentage_matrix)
     return intersection_percentage_matrix
 
 
-mean = np.array([0.485, 0.456, 0.406])
-std = np.array([0.229, 0.224, 0.225])
 
-model = give_yolo_model(num_classes=4)
-model = Model(model, None, 4)
-# model_to_load = torch.load("/ssd_scratch/cvit/keshav/keshav/sdc/logs/lightning_logs/version_65/checkpoints/last.ckpt")
-# model_to_load = torch.load("/ssd_scratch/cvit/keshav/last.ckpt")
-model_to_load = torch.load("tr_102.ckpt")
-model.load_state_dict(model_to_load['state_dict'])
-model.to("cuda")
-model.eval()
 
-out_annots_folder = "./clf_predictions_rm_preds_annots"
-if not os.path.exists(out_annots_folder):
-    os.makedirs(out_annots_folder, exist_ok=True)
+# Initialize classifier using YOLOClf (same as pipeline_new.py)
+dt_classifier = YOLOClf(weights_path=clf_weights, rm_assoc_path=assoc_weigth_path, raw=RAW_MODE)
 
-out_txt_preds = "/ssd_scratch/cvit/Video_set_1/instance_crops_newww_clf_pred_102/"
-out_txt_preds = "./instance_crops_newww_clf_pred_102/"
-import os
-if not os.path.exists(out_txt_preds):
-    os.makedirs(out_txt_preds, exist_ok=True)
 
-os.makedirs(out_txt_preds, exist_ok=True)
+# out_txt_preds = "./instance_crops_newww_clf_pred_102/"
+
 
 def get_iou(boxA, boxB):
     # determine the (x, y)-coordinates of the intersection rectangle
@@ -76,12 +102,15 @@ def get_iou(boxA, boxB):
     return iou
 
 # Load the XML file
-for idx, preds_file in enumerate(rm_preds):
-    print(preds_file)
-    vid_name = preds_file.split("/")[-1].split(".")[0].removesuffix("_data")
+for idx, preds_file in enumerate(tqdm(rm_preds,desc="Processing prediction files")):
+    # print(preds_file)
+    
+    vid_name = preds_file.split("/")[-1].split(".")[0]
+    if vid_name.endswith("_data"):
+        vid_name = vid_name[:-5]  # Remove "_data" suffix
     # if '32806' not in vid_name:
     #     continue
-    video_path = "/ssd_scratch/cvit/dashcop/Video_set_1/videos/" + f"{vid_name}.mp4"
+    video_path = "/nas/deepti.rawat/Wrong-side-driving/Videos/videoset1/original_videos/" + f"{vid_name}.mp4"
     cap = cv2.VideoCapture(video_path)
     all_frames = []
     for frame_number in range(0, 2000):  # Assuming frames start from 0 and increment by 5
@@ -90,7 +119,7 @@ for idx, preds_file in enumerate(rm_preds):
             break
         all_frames.append(frame)
     # Initialize dictionary to store motorcycle and rider information
-    print("Length of all_frames", len(all_frames))
+    # print("Length of all_frames", len(all_frames))
     if len(all_frames) == 0:
         continue
     frame_data = {}
@@ -118,7 +147,7 @@ for idx, preds_file in enumerate(rm_preds):
                     if frame_num not in motor_preds:
                         motor_preds[frame_num] = []
                     motor_preds[frame_num].append({'xmin': xtl, 'ymin': ytl, 'xmax': xbr, 'ymax': ybr, 'id': id, 'assoc_id': assoc_id})
-    print("Predictions read for video ", vid_name)
+    # print("Predictions read for video ", vid_name)
 
 
 
@@ -157,9 +186,9 @@ for idx, preds_file in enumerate(rm_preds):
         # print(motor_boxes)  
           # loop over all motorcycles in the frame, get the riders that have the same assoc_id
         for motor_dict in motor_preds[frame_num]:
-            print("Motorcycle", motor_dict)
+            # print("Motorcycle", motor_dict)
             riders_on_motor = [rider for rider in rider_preds[frame_num] if rider['assoc_id'] == motor_dict['assoc_id'] and rider['assoc_id'] != -1 and get_iou(rider, motor_dict) > 0]
-            print("Riders on motorcycle", riders_on_motor)
+            # print("Riders on motorcycle", riders_on_motor)
             if len(riders_on_motor) == 0:
                 continue
 
@@ -178,8 +207,9 @@ for idx, preds_file in enumerate(rm_preds):
             roi_frame = frame[int(roi_ymin):int(roi_ymax), int(roi_xmin):int(roi_xmax)]
             frame2 = frame.copy()
             roi_frame_temp = frame2[int(roi_ymin):int(roi_ymax), int(roi_xmin):int(roi_xmax)]
-            print(roi_xmin, roi_ymin, roi_xmax, roi_ymax)
-            print(len(riders_on_motor))
+
+            # print(roi_xmin, roi_ymin, roi_xmax, roi_ymax)
+            # print(len(riders_on_motor))
             
             tid = motor_dict['id']
             lp_num="hahaha"
@@ -189,13 +219,11 @@ for idx, preds_file in enumerate(rm_preds):
                 all_inf_data[frame_num] = [[label, roi_xmin,roi_ymin,roi_xmax,roi_ymax, tid,lp_num]]
             else:
                 all_inf_data[frame_num].append([label, roi_xmin,roi_ymin,roi_xmax,roi_ymax, tid, lp_num])
-            print(frame_num, roi_xmin,roi_ymin,roi_xmax,roi_ymax, tid, lp_num)
-            inst_crop = cv2.resize(roi_frame / 255, (224, 224))
-            # inst_crop_ = (inst_crop - mean[None, None]) / std[None, None]
-            crop = torch.from_numpy(inst_crop.astype(np.float32)).permute(2, 0, 1)[None].to("cuda")
-            out_pred = torch.argmax(model(crop)[0]).item() + 1
-            if(out_pred == 4):
-                out_pred = 0
+            # print(frame_num, roi_xmin,roi_ymin,roi_xmax,roi_ymax, tid, lp_num)
+            # Convert to RGB and use classifier (same as pipeline_new.py)
+            inst_crop = cv2.cvtColor(roi_frame, cv2.COLOR_BGR2RGB)
+            out_pred = dt_classifier(inst_crop)
+            
             all_data.append([frame_num, out_pred, roi_xmin,roi_ymin,roi_xmax,roi_ymax, tid, lp_num])
     
             # annotate rider and motor on roi_frame
@@ -204,12 +232,12 @@ for idx, preds_file in enumerate(rm_preds):
             cv2.rectangle(roi_frame_temp, (int(motor_dict['xmin'] - roi_xmin), int(motor_dict['ymin'] - roi_ymin)), (int(motor_dict['xmax'] - roi_xmin), int(motor_dict['ymax'] - roi_ymin)), (0, 255, 0), 2)
 
             if out_pred >= 3:
-                print ("WRONG", roi_xmin,roi_ymin,roi_xmax,roi_ymax, tid, lp_num)
-                print(len(riders_on_motor))
-                for rider in riders_on_motor:
-                    print(rider['xmin'], rider['ymin'], rider['xmax'], rider['ymax'])
+                # print ("WRONG", roi_xmin,roi_ymin,roi_xmax,roi_ymax, tid, lp_num)
+                # print(len(riders_on_motor))
+                # for rider in riders_on_motor:
+                #     print(rider['xmin'], rider['ymin'], rider['xmax'], rider['ymax'])
                 cv2.imwrite(f"{out_annots_folder}/{vid_name}_{frame_num}_{tid}_{out_pred}.png", roi_frame_temp)
-                print("ENDDDDD")
+                # print("ENDDDDD")
             # cv2.imwrite(f"crops/{vid_name}_{frame_num}_{tid}_{out_pred}.png", inst_crop*255)
     
     file_name = out_txt_preds + f"/{vid_name}.txt"

@@ -1,0 +1,9 @@
+path: ../datasets/mots/  # dataset root dir
+train: mini  # train images (relative to 'path') 4 images
+val: mini  # val images (relative to 'path') 4 images
+test:  # test images (optional)
+
+# Classes
+names:
+  0: rider
+  1: motorcycle

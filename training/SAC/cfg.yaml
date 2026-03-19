@@ -1,7 +1,7 @@
-path: ../DashCop/training/CAS/datasets/  # dataset root dir
-train: train  # train images (relative to 'path') 4 images
-val: val  # val images (relative to 'path') 4 images
-test:  # test images (optional)
+path: /ssd_scratch/sai.teja/SAC_dataset  # dataset root dir
+train: train  # train images: videoset2, videoset3, first 50 of videoset4
+val: val  # val images: second 50 of videoset4
+test: test  # test images: videoset1
 
 # Classes
 names:
