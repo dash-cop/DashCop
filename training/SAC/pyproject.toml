@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ultralytics"
+version = "8.0.131+sai"
+description = "Custom Ultralytics YOLO fork with SAC association loss"
+authors = [
+    {name = "Sai Teja"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "torch",
+    "torchvision",
+    "numpy",
+    "opencv-python",
+    "matplotlib",
+    "pyyaml",
+    "tqdm",
+    "pillow",
+    "scipy",
+    "psutil",
+    "pandas"
+]
+
+[project.scripts]
+yolo = "ultralytics.cfg:entrypoint"
+
+[tool.setuptools.packages.find]
+include = ["ultralytics*"]
